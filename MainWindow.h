@@ -54,6 +54,7 @@ private:
     QLineEdit *m_portEdit = nullptr;
     QLineEdit *m_userEdit = nullptr;
     QLineEdit *m_passwordEdit = nullptr;
+    QLineEdit *m_hostKeyEdit = nullptr;
     QLineEdit *m_caseEdit = nullptr;
     QLineEdit *m_sshPathEdit = nullptr;
 

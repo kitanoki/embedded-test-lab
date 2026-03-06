@@ -52,12 +52,14 @@ void MainWindow::setupUi()
     m_userEdit = new QLineEdit("root", sshGroup);
     m_passwordEdit = new QLineEdit("CNDlive@0918", sshGroup);
     m_passwordEdit->setEchoMode(QLineEdit::Password);
+    m_hostKeyEdit = new QLineEdit("SHA256:4quUgeL9Cv8yJ5tSE3z52DpyLNRkLlZt4ZXblssQTBM", sshGroup);
     m_caseEdit = new QLineEdit("EncodeCase", sshGroup);
     m_sshPathEdit = new QLineEdit("ssh", sshGroup);
     sshLayout->addRow("Host", m_hostEdit);
     sshLayout->addRow("Port", m_portEdit);
     sshLayout->addRow("User", m_userEdit);
     sshLayout->addRow("Password", m_passwordEdit);
+    sshLayout->addRow("Host Key", m_hostKeyEdit);
     sshLayout->addRow("CaseName", m_caseEdit);
     sshLayout->addRow("SSH Binary", m_sshPathEdit);
 
@@ -166,6 +168,11 @@ QStringList MainWindow::sshConnectionArgs() const
             args << "-pw" << password;
         }
 
+        const QString hostKey = m_hostKeyEdit->text().trimmed();
+        if (!hostKey.isEmpty()) {
+            args << "-hostkey" << hostKey;
+        }
+
         args << "-batch";
         return args;
     }
@@ -238,9 +245,12 @@ void MainWindow::runSshOneShot(const QString &remoteCommand, const std::function
         appendLog(QString("[Error] SSH process error: %1").arg(static_cast<int>(err)));
     });
 
-    connect(proc, &QProcess::finished, this, [proc, onDone](int exitCode, QProcess::ExitStatus) {
+    connect(proc, &QProcess::finished, this, [this, proc, onDone](int exitCode, QProcess::ExitStatus) {
         const QString out = QString::fromUtf8(proc->readAllStandardOutput());
         const QString err = QString::fromUtf8(proc->readAllStandardError());
+        if (err.contains("Cannot confirm a host key in batch mode", Qt::CaseInsensitive)) {
+            appendLog("[Hint] Plink host key is not trusted yet. Fill 'Host Key' field (for example SHA256 fingerprint) or import the key once via interactive plink/putty.");
+        }
         onDone(exitCode, out, err);
         proc->deleteLater();
     });
@@ -320,6 +330,12 @@ void MainWindow::startRemoteTask(RunMode mode)
             if (!err.trimmed().isEmpty()) {
                 appendLog(err.trimmed());
             }
+            if (!out.trimmed().isEmpty()) {
+                appendLog(out.trimmed());
+            }
+            if (err.trimmed().isEmpty() && out.trimmed().isEmpty()) {
+                appendLog("[Hint] SSH returned no output. Check SSH Binary path, host/port reachability, and plink host key setting.");
+            }
             m_stateLabel->setText("State: Start failed");
             return;
         }
@@ -373,6 +389,9 @@ void MainWindow::stopTask()
             appendLog("[Error] SSH stop command failed");
             if (!err.trimmed().isEmpty()) {
                 appendLog(err.trimmed());
+            }
+            if (!out.trimmed().isEmpty()) {
+                appendLog(out.trimmed());
             }
             return;
         }

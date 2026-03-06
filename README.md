@@ -27,6 +27,7 @@ This tool uses local `ssh` command through `QProcess`.
 - This version supports password field in UI:
   - If sshpass exists, it uses sshpass -p <password> ssh ....
   - If SSH Binary is plink, it uses plink -pw <password> ....
+  - For plink first-connect in batch mode, fill Host Key with server fingerprint (for example SHA256:...).
   - If neither is available, OpenSSH runs in batch mode and will fail fast with a warning instead of hanging.
 
 ## Build (Windows/Linux)
