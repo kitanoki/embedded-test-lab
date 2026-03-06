@@ -1,0 +1,15 @@
+# ninja log v6
+4	499	7944603947312551	Rk3576CodecConsole_autogen/timestamp	867bcdc710b1e9b1
+4	499	7944603947312551	Rk3576CodecConsole_autogen/mocs_compilation.cpp	867bcdc710b1e9b1
+4	499	7944603947312551	C:/Users/Henry/Documents/GitHub/embedded-test-lab/build/Desktop_Qt_6_10_0_MinGW_64_bit-Debug/Rk3576CodecConsole_autogen/timestamp	867bcdc710b1e9b1
+4	499	7944603947312551	C:/Users/Henry/Documents/GitHub/embedded-test-lab/build/Desktop_Qt_6_10_0_MinGW_64_bit-Debug/Rk3576CodecConsole_autogen/mocs_compilation.cpp	867bcdc710b1e9b1
+503	2350	7944603947928452	CMakeFiles/Rk3576CodecConsole.dir/Rk3576CodecConsole_autogen/mocs_compilation.cpp.obj	13c9bdb01d75deec
+506	2354	7944603947958399	CMakeFiles/Rk3576CodecConsole.dir/main.cpp.obj	1b10bb3bf11a9148
+509	3478	7944603947988399	CMakeFiles/Rk3576CodecConsole.dir/MainWindow.cpp.obj	918f7e79ebbee47c
+3478	3749	7944603977683499	Rk3576CodecConsole.exe	507b83a43adde5b4
+31	161	7944609253087309	Rk3576CodecConsole_autogen/timestamp	867bcdc710b1e9b1
+31	161	7944609253087309	Rk3576CodecConsole_autogen/mocs_compilation.cpp	867bcdc710b1e9b1
+31	161	7944609253087309	C:/Users/Henry/Documents/GitHub/embedded-test-lab/build/Desktop_Qt_6_10_0_MinGW_64_bit-Debug/Rk3576CodecConsole_autogen/timestamp	867bcdc710b1e9b1
+31	161	7944609253087309	C:/Users/Henry/Documents/GitHub/embedded-test-lab/build/Desktop_Qt_6_10_0_MinGW_64_bit-Debug/Rk3576CodecConsole_autogen/mocs_compilation.cpp	867bcdc710b1e9b1
+162	2775	7944609254393567	CMakeFiles/Rk3576CodecConsole.dir/MainWindow.cpp.obj	918f7e79ebbee47c
+2775	2989	7944609280524923	Rk3576CodecConsole.exe	507b83a43adde5b4

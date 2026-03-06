@@ -1,4 +1,4 @@
-﻿#include "MainWindow.h"
+#include "MainWindow.h"
 
 #include <QComboBox>
 #include <QDate>
@@ -15,6 +15,7 @@
 #include <QPushButton>
 #include <QRegularExpression>
 #include <QSpinBox>
+#include <QStandardPaths>
 #include <QTimer>
 #include <QVBoxLayout>
 #include <QWidget>
@@ -49,11 +50,14 @@ void MainWindow::setupUi()
     m_hostEdit = new QLineEdit("192.168.1.100", sshGroup);
     m_portEdit = new QLineEdit("22", sshGroup);
     m_userEdit = new QLineEdit("root", sshGroup);
+    m_passwordEdit = new QLineEdit("CNDlive@0918", sshGroup);
+    m_passwordEdit->setEchoMode(QLineEdit::Password);
     m_caseEdit = new QLineEdit("EncodeCase", sshGroup);
     m_sshPathEdit = new QLineEdit("ssh", sshGroup);
     sshLayout->addRow("Host", m_hostEdit);
     sshLayout->addRow("Port", m_portEdit);
     sshLayout->addRow("User", m_userEdit);
+    sshLayout->addRow("Password", m_passwordEdit);
     sshLayout->addRow("CaseName", m_caseEdit);
     sshLayout->addRow("SSH Binary", m_sshPathEdit);
 
@@ -147,6 +151,68 @@ QString MainWindow::sshTarget() const
     return QStringLiteral("%1@%2").arg(m_userEdit->text().trimmed(), m_hostEdit->text().trimmed());
 }
 
+QStringList MainWindow::sshConnectionArgs() const
+{
+    QStringList args;
+
+    if (isPlinkBinary()) {
+        const QString port = m_portEdit->text().trimmed();
+        if (!port.isEmpty()) {
+            args << "-P" << port;
+        }
+
+        const QString password = m_passwordEdit->text();
+        if (!password.isEmpty()) {
+            args << "-pw" << password;
+        }
+
+        args << "-batch";
+        return args;
+    }
+
+    const QString password = m_passwordEdit->text();
+    const bool hasSshpass = !QStandardPaths::findExecutable("sshpass").isEmpty();
+
+    const QString port = m_portEdit->text().trimmed();
+    if (!port.isEmpty()) {
+        args << "-p" << port;
+    }
+
+    args << "-o" << QString("BatchMode=%1").arg(password.isEmpty() || !hasSshpass ? "yes" : "no")
+         << "-o" << "ConnectTimeout=8"
+         << "-o" << "ServerAliveInterval=5"
+         << "-o" << "ServerAliveCountMax=1"
+         << "-o" << "StrictHostKeyChecking=accept-new";
+    return args;
+}
+
+bool MainWindow::isPlinkBinary() const
+{
+    return sshBinary().contains("plink", Qt::CaseInsensitive);
+}
+
+QString MainWindow::sshProgramForStart(QStringList &args) const
+{
+    const QString password = m_passwordEdit->text();
+    if (password.isEmpty()) {
+        return sshBinary();
+    }
+
+    if (isPlinkBinary()) {
+        return sshBinary();
+    }
+
+    const QString sshpass = QStandardPaths::findExecutable("sshpass");
+    if (!sshpass.isEmpty()) {
+        args.prepend(password);
+        args.prepend("-p");
+        args.prepend(sshBinary());
+        return sshpass;
+    }
+
+    return sshBinary();
+}
+
 QString MainWindow::shQuote(const QString &text)
 {
     QString out = text;
@@ -167,14 +233,10 @@ QString MainWindow::sanitizeCaseName(const QString &raw)
 void MainWindow::runSshOneShot(const QString &remoteCommand, const std::function<void(int, const QString &, const QString &)> &onDone)
 {
     auto *proc = new QProcess(this);
-    QStringList args;
 
-    const QString port = m_portEdit->text().trimmed();
-    if (!port.isEmpty()) {
-        args << "-p" << port;
-    }
-
-    args << sshTarget() << remoteCommand;
+    connect(proc, &QProcess::errorOccurred, this, [this](QProcess::ProcessError err) {
+        appendLog(QString("[Error] SSH process error: %1").arg(static_cast<int>(err)));
+    });
 
     connect(proc, &QProcess::finished, this, [proc, onDone](int exitCode, QProcess::ExitStatus) {
         const QString out = QString::fromUtf8(proc->readAllStandardOutput());
@@ -183,7 +245,18 @@ void MainWindow::runSshOneShot(const QString &remoteCommand, const std::function
         proc->deleteLater();
     });
 
-    proc->start(sshBinary(), args);
+    QStringList args = sshConnectionArgs();
+    args << sshTarget() << remoteCommand;
+
+    const QString password = m_passwordEdit->text();
+    const bool usingPlink = isPlinkBinary();
+    const bool usingSshpass = !password.isEmpty() && !QStandardPaths::findExecutable("sshpass").isEmpty() && !usingPlink;
+    if (!password.isEmpty() && !usingPlink && !usingSshpass) {
+        appendLog("[Warn] Password is set, but sshpass is not found. Current ssh command cannot input password interactively. Install sshpass, switch SSH Binary to plink, or use SSH key login.");
+    }
+
+    const QString program = sshProgramForStart(args);
+    proc->start(program, args);
 }
 
 QString MainWindow::buildEncodeGstCommand() const
@@ -333,14 +406,11 @@ void MainWindow::startTailLog(const QString &remoteLogFile)
         appendLog(QString("[Local] tail exited: %1").arg(code));
     });
 
-    QStringList args;
-    const QString port = m_portEdit->text().trimmed();
-    if (!port.isEmpty()) {
-        args << "-p" << port;
-    }
+    QStringList args = sshConnectionArgs();
     args << sshTarget() << QString("tail -n 0 -F %1").arg(shQuote(remoteLogFile));
 
-    m_tailProcess->start(sshBinary(), args);
+    const QString program = sshProgramForStart(args);
+    m_tailProcess->start(program, args);
 }
 
 void MainWindow::stopTailLog()
@@ -406,3 +476,4 @@ void MainWindow::saveLogToFile()
 
     appendLog(QString("[Local] Logs saved to %1").arg(filePath));
 }
+

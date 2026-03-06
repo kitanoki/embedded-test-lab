@@ -1,6 +1,7 @@
-﻿#pragma once
+#pragma once
 
 #include <QMainWindow>
+#include <QStringList>
 
 #include <functional>
 
@@ -43,12 +44,16 @@ private:
     void stopTailLog();
     QString sshBinary() const;
     QString sshTarget() const;
+    QStringList sshConnectionArgs() const;
+    bool isPlinkBinary() const;
+    QString sshProgramForStart(QStringList &args) const;
     static QString shQuote(const QString &text);
     static QString sanitizeCaseName(const QString &raw);
 
     QLineEdit *m_hostEdit = nullptr;
     QLineEdit *m_portEdit = nullptr;
     QLineEdit *m_userEdit = nullptr;
+    QLineEdit *m_passwordEdit = nullptr;
     QLineEdit *m_caseEdit = nullptr;
     QLineEdit *m_sshPathEdit = nullptr;
 
@@ -80,3 +85,5 @@ private:
     RunMode m_mode = RunMode::None;
     bool m_statusBusy = false;
 };
+
+

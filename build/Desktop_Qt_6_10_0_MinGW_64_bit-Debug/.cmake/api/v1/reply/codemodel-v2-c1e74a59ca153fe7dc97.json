@@ -1,0 +1,78 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"jsonFile" : "directory-.-Debug-d0094a50bb2071803777.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "Rk3576CodecConsole",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "Rk3576CodecConsole::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Rk3576CodecConsole-Debug-6fb2057ae78fd71a5b80.json",
+					"name" : "Rk3576CodecConsole",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "Rk3576CodecConsole_autogen::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Rk3576CodecConsole_autogen-Debug-6660f71d85fa8c52bc0f.json",
+					"name" : "Rk3576CodecConsole_autogen",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "Rk3576CodecConsole_autogen_timestamp_deps::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Rk3576CodecConsole_autogen_timestamp_deps-Debug-95170b6bbc23ee43decf.json",
+					"name" : "Rk3576CodecConsole_autogen_timestamp_deps",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "C:/Users/Henry/Documents/GitHub/embedded-test-lab/build/Desktop_Qt_6_10_0_MinGW_64_bit-Debug",
+		"source" : "C:/Users/Henry/Documents/GitHub/embedded-test-lab"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 7
+	}
+}

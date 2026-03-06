@@ -1,4 +1,4 @@
-﻿# RK3576 Codec Test Console (Qt6 Widgets)
+# RK3576 Codec Test Console (Qt6 Widgets)
 
 ## Features
 - One-click remote encode/decode via SSH.
@@ -24,7 +24,10 @@
 ## Important runtime requirement
 This tool uses local `ssh` command through `QProcess`.
 - Recommended: passwordless SSH key login from PC to board root account.
-- If your environment needs password prompt interaction, this version does not embed a password dialog.
+- This version supports password field in UI:
+  - If sshpass exists, it uses sshpass -p <password> ssh ....
+  - If SSH Binary is plink, it uses plink -pw <password> ....
+  - If neither is available, OpenSSH runs in batch mode and will fail fast with a warning instead of hanging.
 
 ## Build (Windows/Linux)
 
@@ -41,3 +44,4 @@ Run:
 - Default decode command follows your demo (`DolbyVision_NASA_4K.mp4`).
 - Default encode pipeline is gstreamer-based with RK encoder plugins (`mpph264enc` / `mpph265enc`).
 - If plugin names differ in your SDK image, only `buildEncodeGstCommand()` in `MainWindow.cpp` needs adjustment.
+
