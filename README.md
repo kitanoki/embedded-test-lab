@@ -3,7 +3,7 @@
 ## Features
 - One-click remote encode/decode via SSH.
 - Auto pre-kill startup business processes before each run:
-  - `pkill -f '/etc/loop.sh'`
+  - `pkill -f '/etc/[l]oop.sh'` (avoid self-match killing current ssh shell)
   - `killall -9 luajit`
 - Channel selection: `/dev/video11`, `/dev/video12`, `/dev/video13`.
 - Encode parameter controls:
@@ -19,6 +19,7 @@
   - Memory usage
 - Real-time stdout/stderr display using remote `tail -F`.
 - Local save of UI log text.
+- On `Stop`: auto-save current UI log to Desktop as `CaseName-yyyy-MM-dd.log`, then clear log view.
 - Remote logs saved as: `/userdata/log/[CaseName]_yyyy-MM-dd.log`.
 
 ## Important runtime requirement

@@ -42,6 +42,7 @@ private:
     void runSshOneShot(const QString &remoteCommand, const std::function<void(int, const QString &, const QString &)> &onDone);
     void startTailLog(const QString &remoteLogFile);
     void stopTailLog();
+    bool autoSaveAndClearLogView();
     QString sshBinary() const;
     QString sshTarget() const;
     QStringList sshConnectionArgs() const;

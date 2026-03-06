@@ -2,6 +2,7 @@
 
 #include <QComboBox>
 #include <QDate>
+#include <QDir>
 #include <QFile>
 #include <QFileDialog>
 #include <QFormLayout>
@@ -139,7 +140,13 @@ void MainWindow::setupUi()
 
 void MainWindow::appendLog(const QString &line)
 {
-    m_logEdit->appendPlainText(line);
+    static const QRegularExpression controlChars(QStringLiteral("[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F]"));
+    QString cleaned = line;
+    cleaned.remove(controlChars);
+    if (cleaned.trimmed().isEmpty()) {
+        return;
+    }
+    m_logEdit->appendPlainText(cleaned);
 }
 
 QString MainWindow::sshBinary() const
@@ -240,23 +247,9 @@ QString MainWindow::sanitizeCaseName(const QString &raw)
 void MainWindow::runSshOneShot(const QString &remoteCommand, const std::function<void(int, const QString &, const QString &)> &onDone)
 {
     auto *proc = new QProcess(this);
-
-    connect(proc, &QProcess::errorOccurred, this, [this](QProcess::ProcessError err) {
-        appendLog(QString("[Error] SSH process error: %1").arg(static_cast<int>(err)));
-    });
-
-    connect(proc, &QProcess::finished, this, [this, proc, onDone](int exitCode, QProcess::ExitStatus) {
-        const QString out = QString::fromUtf8(proc->readAllStandardOutput());
-        const QString err = QString::fromUtf8(proc->readAllStandardError());
-        if (err.contains("Cannot confirm a host key in batch mode", Qt::CaseInsensitive)) {
-            appendLog("[Hint] Plink host key is not trusted yet. Fill 'Host Key' field (for example SHA256 fingerprint) or import the key once via interactive plink/putty.");
-        }
-        onDone(exitCode, out, err);
-        proc->deleteLater();
-    });
-
+    const QString target = sshTarget();
     QStringList args = sshConnectionArgs();
-    args << sshTarget() << remoteCommand;
+    args << target << remoteCommand;
 
     const QString password = m_passwordEdit->text();
     const bool usingPlink = isPlinkBinary();
@@ -266,6 +259,50 @@ void MainWindow::runSshOneShot(const QString &remoteCommand, const std::function
     }
 
     const QString program = sshProgramForStart(args);
+    const QString shownProgram = program;
+    const QStringList shownArgs = args;
+
+    connect(proc, &QProcess::errorOccurred, this, [this](QProcess::ProcessError err) {
+        QString errText;
+        switch (err) {
+        case QProcess::FailedToStart:
+            errText = "FailedToStart";
+            break;
+        case QProcess::Crashed:
+            errText = "Crashed";
+            break;
+        case QProcess::Timedout:
+            errText = "Timedout";
+            break;
+        case QProcess::WriteError:
+            errText = "WriteError";
+            break;
+        case QProcess::ReadError:
+            errText = "ReadError";
+            break;
+        case QProcess::UnknownError:
+        default:
+            errText = "UnknownError";
+            break;
+        }
+        appendLog(QString("[Error] SSH process error: %1 (%2)").arg(errText).arg(static_cast<int>(err)));
+    });
+
+    connect(proc, &QProcess::finished, this, [this, proc, onDone, shownProgram, shownArgs](int exitCode, QProcess::ExitStatus exitStatus) {
+        const QString out = QString::fromUtf8(proc->readAllStandardOutput());
+        const QString err = QString::fromUtf8(proc->readAllStandardError());
+        if (err.contains("Cannot confirm a host key in batch mode", Qt::CaseInsensitive)) {
+            appendLog("[Hint] Plink host key is not trusted yet. Fill 'Host Key' field (for example SHA256 fingerprint) or import the key once via interactive plink/putty.");
+        }
+        if (exitCode != 0 && out.trimmed().isEmpty() && err.trimmed().isEmpty()) {
+            appendLog(QString("[Diag] SSH exited without output. exitCode=%1 exitStatus=%2").arg(exitCode).arg(static_cast<int>(exitStatus)));
+            appendLog(QString("[Diag] Program: %1").arg(shownProgram));
+            appendLog(QString("[Diag] Args: %1").arg(shownArgs.join(' ')));
+        }
+        onDone(exitCode, out, err);
+        proc->deleteLater();
+    });
+
     proc->start(program, args);
 }
 
@@ -315,7 +352,7 @@ void MainWindow::startRemoteTask(RunMode mode)
 
     const QString remote = QStringLiteral(
                                "mkdir -p /userdata/log; "
-                               "pkill -f '/etc/loop.sh' >/dev/null 2>&1 || true; "
+                               "pkill -f '/etc/[l]oop.sh' >/dev/null 2>&1 || true; "
                                "killall -9 luajit >/dev/null 2>&1 || true; "
                                "log_file=\"/userdata/log/%1_$(date +%F).log\"; "
                                "nohup bash -c %2 > \"$log_file\" 2>&1 & "
@@ -405,7 +442,7 @@ void MainWindow::stopTask()
         m_runningPid.clear();
         m_remoteLogFile.clear();
         m_mode = RunMode::None;
-        m_stateLabel->setText("State: Idle");
+        autoSaveAndClearLogView();
     });
 }
 
@@ -441,6 +478,35 @@ void MainWindow::stopTailLog()
     m_tailProcess->kill();
     m_tailProcess->deleteLater();
     m_tailProcess = nullptr;
+}
+
+bool MainWindow::autoSaveAndClearLogView()
+{
+    const QString desktopDir = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+    const QString baseDir = desktopDir.isEmpty() ? QDir::homePath() : desktopDir;
+    const QString caseName = sanitizeCaseName(m_caseEdit->text());
+    const QString fileName = QString("%1-%2.log").arg(caseName, QDate::currentDate().toString("yyyy-MM-dd"));
+    const QString filePath = QDir(baseDir).filePath(fileName);
+
+    QFile f(filePath);
+    if (!f.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        appendLog(QString("[Error] Auto-save failed: %1").arg(filePath));
+        m_stateLabel->setText("State: Idle (auto-save failed)");
+        return false;
+    }
+
+    const QByteArray data = m_logEdit->toPlainText().toUtf8();
+    if (f.write(data) < 0) {
+        appendLog(QString("[Error] Auto-save write failed: %1").arg(filePath));
+        f.close();
+        m_stateLabel->setText("State: Idle (auto-save failed)");
+        return false;
+    }
+
+    f.close();
+    m_logEdit->clear();
+    m_stateLabel->setText(QString("State: Idle (saved %1)").arg(fileName));
+    return true;
 }
 
 void MainWindow::pollStatus()
